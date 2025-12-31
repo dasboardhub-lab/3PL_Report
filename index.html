@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistic Report Partner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- html2canvas untuk fitur screenshot -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b',
+                        surface: '#f8fafc',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .drag-active { border-color: #3b82f6; background-color: #eff6ff; }
+        
+        .report-header {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        }
+    </style>
+</head>
+<body class="bg-surface text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50 h-14 print:hidden">
+        <div class="max-w-[1600px] mx-auto px-4 h-full flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="bg-blue-600 text-white p-1.5 rounded-lg text-sm shadow-sm">
+                    <i class="fa-solid fa-handshake"></i>
+                </div>
+                <h1 class="text-lg font-bold text-slate-800 tracking-tight">Logistic Report Partner</h1>
+            </div>
+            <div class="flex items-center text-xs sm:text-sm">
+                <span class="text-slate-500 mr-2">Mode:</span>
+                <span class="font-medium bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded text-xs">Active</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-[1600px] w-full mx-auto px-4 py-6 space-y-6">
+        
+        <!-- 1. COMPACT Upload & Paste Section -->
+        <section class="bg-white rounded-lg shadow-sm border border-slate-200 p-4 fade-in print:hidden">
+            <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-lg p-3 transition-all duration-200 hover:border-blue-400 hover:bg-slate-50 cursor-pointer flex flex-col sm:flex-row items-center justify-between gap-4">
+                <input type="file" id="fileInput" class="hidden" accept=".csv, .txt">
+                
+                <!-- Info Area -->
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <div class="text-left">
+                        <h3 class="text-sm font-semibold text-slate-700">Import Data Logistic</h3>
+                        <p class="text-xs text-slate-500">Format: CSV, TXT, atau Paste Langsung (Pipe |)</p>
+                        <p id="fileNameDisplay" class="text-xs font-bold text-blue-600 mt-1 hidden"></p>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex items-center gap-2">
+                    <button onclick="openPasteModal(event)" class="px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 text-sm rounded-lg hover:bg-indigo-100 transition-colors shadow-sm font-medium whitespace-nowrap flex items-center gap-2">
+                        <i class="fa-regular fa-paste"></i> Paste Data
+                    </button>
+                    <button onclick="triggerFile(event)" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium whitespace-nowrap flex items-center gap-2">
+                        <i class="fa-solid fa-upload"></i> Pilih File
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SPLIT VIEW: Report Card (Left) & Copy List (Right) -->
+        <div id="mainGrid" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 fade-in">
+            
+            <!-- LEFT COLUMN: REPORT CARD (Width: 7/12) -->
+            <div class="lg:col-span-7 flex flex-col gap-4">
+                
+                <!-- Controls -->
+                <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200 shadow-sm print:hidden">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-2">Filter:</span>
+                        <div class="relative">
+                            <select id="partnerFilter" class="appearance-none bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-40 pl-3 pr-8 py-1.5 cursor-pointer font-medium" onchange="applyFilter()">
+                                <option value="ALL">Semua Partner</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                                <i class="fa-solid fa-chevron-down text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tombol Generate Gambar -->
+                    <button onclick="captureReport()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors shadow-sm flex items-center gap-2">
+                        <i class="fa-solid fa-camera"></i> Simpan Gambar (WA)
+                    </button>
+                </div>
+
+                <!-- THE REPORT CARD (Target Screenshot) -->
+                <div id="reportCardToCapture" class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden flex flex-col">
+                    
+                    <!-- Report Header -->
+                    <div class="report-header p-4 text-white flex justify-between items-center">
+                        <div>
+                            <h2 class="text-lg font-bold tracking-tight">Daily Handover Report</h2>
+                            <p class="text-blue-100 text-[10px] mt-0.5 opacity-90">Logistic Partner Summary</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xl font-bold font-mono" id="headerTotalQty">0</div>
+                            <div class="text-blue-100 text-[10px] font-medium uppercase tracking-wider">Total Success Orders</div>
+                        </div>
+                    </div>
+
+                    <!-- Report Meta Info -->
+                    <div class="bg-slate-50 border-b border-slate-200 px-4 py-2 flex justify-between items-center text-[10px] text-slate-500">
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-1.5">
+                                <i class="fa-regular fa-calendar"></i>
+                                <span id="reportDate" class="font-medium text-slate-700"></span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <i class="fa-regular fa-clock"></i>
+                                <span id="reportTime" class="font-medium text-slate-700"></span>
+                            </div>
+                        </div>
+                        <div class="font-mono text-slate-400" id="reportId">ID: RPT-UNKNOWN</div>
+                    </div>
+
+                    <!-- Report Table -->
+                    <div class="overflow-x-auto bg-white">
+                        <table class="min-w-full divide-y divide-slate-100">
+                            <thead class="bg-white">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-8">No</th>
+                                    <th class="px-4 py-2 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Batch Number</th>
+                                    <th class="px-4 py-2 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Partner</th>
+                                    <th class="px-4 py-2 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">Qty (All)</th>
+                                    <th class="px-4 py-2 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                                    <th data-html2canvas-ignore class="px-4 py-2 text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="batchTableBody" class="bg-white divide-y divide-slate-50 text-xs">
+                                <!-- Generated Content -->
+                            </tbody>
+                            <tfoot class="bg-slate-50 border-t border-slate-200">
+                                <tr>
+                                    <td colspan="6" class="px-4 py-2 text-center text-[10px] text-slate-400 italic">
+                                        End of Report • Generated by Logistic Report Partner
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Copy AWB List (Width: 5/12) -->
+            <div class="lg:col-span-5 flex flex-col h-full print:hidden">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col h-full border-l-4 border-l-blue-500 sticky top-20">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-lg">
+                        <div>
+                            <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm">
+                                <i class="fa-regular fa-clipboard text-blue-600"></i> Copy Resi Sukses
+                            </h3>
+                            <p class="text-[10px] text-slate-500 mt-0.5">Hanya status ORDER_SUCCESS</p>
+                        </div>
+                        <button onclick="copyAllResi()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors shadow-sm flex items-center gap-2 group">
+                            <span class="hidden sm:inline">Salin Semua</span>
+                            <span class="sm:hidden">Salin</span>
+                            <i class="fa-solid fa-copy group-hover:animate-bounce"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="relative flex-grow p-0">
+                        <textarea id="allResiText" readonly class="w-full h-[400px] lg:h-full min-h-[300px] p-4 bg-white font-mono text-xs text-slate-600 focus:outline-none resize-none leading-relaxed" placeholder="Resi akan muncul di sini..."></textarea>
+                    </div>
+                    
+                    <div class="p-2 bg-slate-50 border-t border-slate-100 text-center text-xs text-slate-400 rounded-b-lg">
+                        Total baris: <span id="copyTotalCount" class="font-bold text-slate-600">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detail Section (Hidden by default) -->
+        <section id="detailSection" class="hidden fade-in pt-4 border-t border-slate-200 print:hidden">
+            <div class="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-file-invoice text-indigo-600"></i> 
+                        Detail Order Batch
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1 font-mono">
+                        <span id="selectedBatchTitle" class="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">ELC-XXX</span> 
+                    </p>
+                </div>
+                
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <div class="relative flex-grow sm:flex-grow-0">
+                        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" id="searchInput" placeholder="Cari Resi..." class="pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-full">
+                    </div>
+                    <button onclick="downloadDetailCSV()" class="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium shadow-sm">
+                        <i class="fa-solid fa-download"></i> CSV
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto max-h-[400px]">
+                    <table class="min-w-full divide-y divide-slate-200 sticky top-0">
+                        <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase w-12">No</th>
+                                <th class="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">No Order</th>
+                                <th class="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Status</th>
+                                <th class="px-4 py-2 text-right text-xs font-bold text-slate-500 uppercase">Copy</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orderTableBody" class="bg-white divide-y divide-slate-200 text-sm">
+                            <!-- Orders generated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Paste Modal -->
+    <div id="pasteModal" class="fixed inset-0 bg-black/50 hidden z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-regular fa-clipboard text-indigo-600"></i> Paste Data Mentah
+                </h3>
+                <button onclick="closePasteModal()" class="text-slate-400 hover:text-red-500 transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4 flex-grow flex flex-col gap-2">
+                <p class="text-sm text-slate-500">Paste data dari Excel atau Notepad di bawah ini (Format Pipe |)</p>
+                <textarea id="pasteInput" class="w-full flex-grow border border-slate-300 rounded-lg p-4 font-mono text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none min-h-[300px]" placeholder="Contoh: 
+11003074830836|11003074830836|ORDER_SUCCESS|ELC-0000193592|SALM|201
+..."></textarea>
+            </div>
+            <div class="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-xl">
+                <button onclick="closePasteModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg text-sm font-medium transition-colors">Batal</button>
+                <button onclick="processPaste()" class="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors shadow-sm">
+                    <i class="fa-solid fa-gear mr-1"></i> Proses Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Screenshot Result -->
+    <div id="imageModal" class="fixed inset-0 bg-black/80 hidden z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-image text-indigo-600"></i> Hasil Gambar Laporan
+                </h3>
+                <button onclick="closeImageModal()" class="text-slate-400 hover:text-red-500 transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 bg-slate-100 overflow-auto flex justify-center items-start flex-grow">
+                <div id="screenshotContainer" class="shadow-lg"></div>
+            </div>
+            <div class="p-4 border-t border-slate-100 flex justify-between items-center bg-white rounded-b-xl">
+                <p class="text-xs text-slate-500"><i class="fa-solid fa-circle-info text-blue-500"></i> Klik kanan / Tahan gambar untuk menyalin.</p>
+                <button onclick="closeImageModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 z-50 pointer-events-none">
+        <div class="bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-3 text-sm">
+            <i class="fa-solid fa-circle-check text-green-400"></i>
+            <span id="toastMessage">Berhasil!</span>
+        </div>
+    </div>
+
+    <script>
+        // --- GLOBAL STATE ---
+        let batchData = {}; 
+        let currentBatchId = null;
+        let uniquePartners = new Set();
+
+        // --- DOM ELEMENTS ---
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const mainGrid = document.getElementById('mainGrid');
+        const detailSection = document.getElementById('detailSection');
+        const batchTableBody = document.getElementById('batchTableBody');
+        const orderTableBody = document.getElementById('orderTableBody');
+        const selectedBatchTitle = document.getElementById('selectedBatchTitle');
+        const headerTotalQty = document.getElementById('headerTotalQty');
+        const searchInput = document.getElementById('searchInput');
+        const partnerFilter = document.getElementById('partnerFilter');
+        const allResiText = document.getElementById('allResiText');
+        const copyTotalCount = document.getElementById('copyTotalCount');
+        const imageModal = document.getElementById('imageModal');
+        const screenshotContainer = document.getElementById('screenshotContainer');
+        const pasteModal = document.getElementById('pasteModal');
+        const pasteInput = document.getElementById('pasteInput');
+        
+        // --- INIT ---
+        function updateTime() {
+            const now = new Date();
+            const dateOptions = { day: 'numeric', month: 'long', year: 'numeric' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit' };
+            document.getElementById('reportDate').textContent = now.toLocaleDateString('id-ID', dateOptions);
+            document.getElementById('reportTime').textContent = now.toLocaleTimeString('id-ID', timeOptions);
+            document.getElementById('reportId').textContent = `RPT-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+        }
+        updateTime();
+
+        // --- FILE & PASTE HANDLING ---
+        
+        dropZone.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                fileInput.click();
+            }
+        });
+        
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-active'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('drag-active'); });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault(); dropZone.classList.remove('drag-active');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        function triggerFile(e) {
+            e.stopPropagation();
+            fileInput.click();
+        }
+
+        function openPasteModal(e) {
+            if(e) e.stopPropagation();
+            pasteModal.classList.remove('hidden');
+            pasteInput.focus();
+        }
+
+        function closePasteModal() {
+            pasteModal.classList.add('hidden');
+        }
+
+        function processPaste() {
+            const content = pasteInput.value;
+            if(!content.trim()) {
+                alert("Silakan paste data terlebih dahulu.");
+                return;
+            }
+            processData(content);
+            closePasteModal();
+            fileNameDisplay.textContent = "Mode: Paste Data Manual";
+            fileNameDisplay.classList.remove('hidden');
+        }
+
+        function handleFile(file) {
+            fileNameDisplay.textContent = `File: ${file.name}`;
+            fileNameDisplay.classList.remove('hidden');
+            const reader = new FileReader();
+            reader.onload = (e) => processData(e.target.result);
+            reader.readAsText(file);
+        }
+
+        // --- PARSING LOGIC ---
+        function processData(text) {
+            batchData = {}; 
+            uniquePartners = new Set();
+            let totalFound = 0;
+            const lines = text.trim().split(/\r?\n/);
+            
+            if (text.includes('|')) {
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    const parts = line.split('|');
+                    
+                    if (parts[0].toLowerCase().includes('waybill') || parts[3]?.toLowerCase().includes('batch')) continue; 
+
+                    if (parts.length >= 5) {
+                        const orderNo = parts[1].trim(); 
+                        const statusRaw = parts[2].trim();
+                        const batchNo = parts[3].trim();
+                        const partner = parts[4].trim();
+                        
+                        if (batchNo.startsWith('ELC-')) {
+                            if (!batchData[batchNo]) {
+                                batchData[batchNo] = {
+                                    partner: partner,
+                                    orders: [],
+                                    statusCounts: {},
+                                    orderDetails: []
+                                };
+                                uniquePartners.add(partner);
+                            }
+                            batchData[batchNo].orders.push(orderNo);
+                            batchData[batchNo].orderDetails.push({ id: orderNo, status: statusRaw });
+
+                            if (!batchData[batchNo].statusCounts[statusRaw]) {
+                                batchData[batchNo].statusCounts[statusRaw] = 0;
+                            }
+                            batchData[batchNo].statusCounts[statusRaw]++;
+                            totalFound++;
+                        }
+                    }
+                }
+            }
+
+            // Fallback Regex
+            if (totalFound === 0) {
+                const regex = /(\d{14})ORDER_SUCCESS(ELC-[\d]+)/g;
+                let match;
+                while ((match = regex.exec(text)) !== null) {
+                    const orderNo = match[1];
+                    const batchNo = match[2];
+                    const defaultPartner = "UNKNOWN";
+                    const statusRaw = "ORDER_SUCCESS";
+
+                    if (!batchData[batchNo]) {
+                        batchData[batchNo] = {
+                            partner: defaultPartner,
+                            orders: [],
+                            statusCounts: { 'ORDER_SUCCESS': 0 },
+                            orderDetails: []
+                        };
+                        uniquePartners.add(defaultPartner);
+                    }
+                    batchData[batchNo].orders.push(orderNo);
+                    batchData[batchNo].orderDetails.push({ id: orderNo, status: statusRaw });
+                    batchData[batchNo].statusCounts['ORDER_SUCCESS']++;
+                    totalFound++;
+                }
+            }
+
+            if (totalFound > 0) {
+                populateFilter();
+                renderBatchSummary(); 
+                showToast(`Data Loaded: ${totalFound} orders`);
+                mainGrid.classList.remove('hidden');
+                detailSection.classList.add('hidden');
+                updateTime(); // Refresh time on load
+            } else {
+                alert("Format data tidak sesuai. Pastikan menggunakan format Pipe (|) yang benar.");
+            }
+        }
+
+        // --- FILTER ---
+        function populateFilter() {
+            partnerFilter.innerHTML = '<option value="ALL">Semua Partner</option>';
+            Array.from(uniquePartners).sort().forEach(partner => {
+                const option = document.createElement('option');
+                option.value = partner;
+                option.textContent = partner;
+                partnerFilter.appendChild(option);
+            });
+        }
+
+        function applyFilter() { renderBatchSummary(); }
+
+        // --- RENDER ---
+        function renderBatchSummary() {
+            const selectedPartner = partnerFilter.value;
+            batchTableBody.innerHTML = '';
+            let grandTotalSuccess = 0; // Count only success for header
+            let index = 1;
+            let allOrdersForCopy = [];
+
+            const sortedBatches = Object.keys(batchData).sort();
+
+            for (const batchId of sortedBatches) {
+                const data = batchData[batchId];
+                if (selectedPartner !== 'ALL' && data.partner !== selectedPartner) continue;
+
+                // --- LOGIC: COUNT & COPY ONLY SUCCESS ---
+                const successOrders = data.orderDetails.filter(o => o.status === 'ORDER_SUCCESS').map(o => o.id);
+                allOrdersForCopy.push(...successOrders);
+                
+                // Add to Header Total (Success Only)
+                grandTotalSuccess += successOrders.length;
+                
+                // --- LOGIC: TABLE QTY SHOWS TOTAL (ALL) ---
+                const totalRowQty = data.orders.length; // Total All Orders
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-blue-50 transition-colors cursor-pointer group even:bg-slate-50/50';
+                tr.onclick = () => showBatchDetails(batchId);
+
+                // --- Status Badge Logic (SHOW ALL STATUSES) ---
+                let statusHtml = '';
+                const statusKeys = Object.keys(data.statusCounts);
+                
+                if (statusKeys.length === 1 && statusKeys[0] === 'ORDER_SUCCESS') {
+                    statusHtml = `
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700 border border-green-200 shadow-sm">
+                                <i class="fa-solid fa-check-circle text-[9px]"></i> ORDER_SUCCESS
+                            </span>
+                        </div>
+                    `;
+                } else {
+                    let badges = [];
+                    statusKeys.forEach(status => {
+                        const count = data.statusCounts[status];
+                        if (status === 'ORDER_SUCCESS') {
+                            badges.push(`<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-green-100 text-green-700 border border-green-200">${status}: ${count}</span>`);
+                        } else {
+                            badges.push(`<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700 border border-red-200 animate-pulse"><i class="fa-solid fa-circle-exclamation"></i> ${status}: ${count}</span>`);
+                        }
+                    });
+                    statusHtml = `<div class="flex flex-col gap-1 items-start">${badges.join('')}</div>`;
+                }
+
+                const pColor = getPartnerColor(data.partner);
+
+                tr.innerHTML = `
+                    <td class="px-4 py-2 text-slate-400 font-mono text-[10px] align-middle border-l-2 border-transparent hover:border-blue-500 transition-all">${index++}</td>
+                    <td class="px-4 py-2 align-middle">
+                         <span class="text-xs font-bold text-slate-700 font-mono group-hover:text-blue-600 transition-colors tracking-tight">${batchId}</span>
+                    </td>
+                    <td class="px-4 py-2 align-middle">
+                         <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${pColor}">
+                             ${data.partner}
+                         </span>
+                    </td>
+                    <td class="px-4 py-2 align-middle text-center">
+                        <span class="font-bold text-slate-700 text-xs bg-slate-100 px-2 py-0.5 rounded border border-slate-200 shadow-sm min-w-[2rem] inline-block">${totalRowQty}</span>
+                    </td>
+                    <td class="px-4 py-2 align-middle">
+                        ${statusHtml}
+                    </td>
+                    <td data-html2canvas-ignore class="px-4 py-2 align-middle text-right">
+                        <button class="w-8 h-8 rounded-full bg-slate-50 hover:bg-blue-100 text-slate-400 hover:text-blue-600 transition-all flex items-center justify-center" title="Lihat Detail">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+                batchTableBody.appendChild(tr);
+            }
+            
+            headerTotalQty.textContent = grandTotalSuccess.toLocaleString('id-ID');
+            allResiText.value = allOrdersForCopy.join('\n');
+            copyTotalCount.textContent = allOrdersForCopy.length;
+        }
+
+        function getPartnerColor(partner) {
+            const firstChar = partner.charAt(0).toUpperCase();
+            if (['J', 'A', 'S'].includes(firstChar)) return 'bg-orange-100 text-orange-700 border border-orange-200';
+            if (['G', 'T', 'B'].includes(firstChar)) return 'bg-purple-100 text-purple-700 border border-purple-200';
+            return 'bg-blue-100 text-blue-700 border border-blue-200';
+        }
+
+        function showBatchDetails(batchId) {
+            currentBatchId = batchId;
+            selectedBatchTitle.textContent = `${batchId} (${batchData[batchId].partner})`;
+            detailSection.classList.remove('hidden');
+            renderOrderTable(batchData[batchId].orderDetails);
+            setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
+        }
+
+        function renderOrderTable(details) {
+            orderTableBody.innerHTML = '';
+            details.forEach((item, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 border-b border-slate-100';
+                const statusClass = item.status === 'ORDER_SUCCESS' ? 'text-green-600' : 'text-red-600 font-bold';
+                
+                tr.innerHTML = `
+                    <td class="px-4 py-2 text-slate-400 text-xs">${idx + 1}</td>
+                    <td class="px-4 py-2 font-mono text-slate-600 text-xs">${item.id}</td>
+                    <td class="px-4 py-2 text-xs ${statusClass}">${item.status}</td>
+                    <td class="px-4 py-2 text-right">
+                        <button onclick="copyToClipboard('${item.id}')" class="text-slate-400 hover:text-blue-600"><i class="fa-regular fa-copy"></i></button>
+                    </td>
+                `;
+                orderTableBody.appendChild(tr);
+            });
+        }
+
+        function copyAllResi() {
+            const text = allResiText;
+            text.select();
+            text.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(text.value)
+                .then(() => showToast(`Disalin: ${copyTotalCount.textContent} resi`))
+                .catch(() => alert("Gunakan Ctrl+A, Ctrl+C"));
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            showToast('Tersalin!');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 2000);
+        }
+
+        // CSV Search
+        searchInput.addEventListener('input', (e) => {
+            if (!currentBatchId) return;
+            const term = e.target.value.toLowerCase();
+            const filtered = batchData[currentBatchId].orderDetails.filter(item => item.id.includes(term));
+            renderOrderTable(filtered);
+        });
+
+        function downloadDetailCSV() {
+            if(!currentBatchId) return;
+            const data = batchData[currentBatchId];
+            const rows = [['No', 'OrderNo', 'Batch', 'Partner', 'Status']];
+            data.orderDetails.forEach((item, i) => rows.push([i+1, `'${item.id}`, currentBatchId, data.partner, item.status]));
+            const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+            const link = document.createElement("a");
+            link.href = encodeURI(csvContent);
+            link.download = `Detail_${currentBatchId}.csv`;
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
+        // --- SCREENSHOT FEATURE ---
+        function captureReport() {
+            const element = document.getElementById("reportCardToCapture");
+            const btn = document.querySelector("button[onclick='captureReport()']");
+            
+            // Visual feedback loading
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
+            btn.disabled = true;
+
+            html2canvas(element, {
+                scale: 2, // Higher quality
+                backgroundColor: "#ffffff",
+                ignoreElements: (node) => {
+                    return node.hasAttribute('data-html2canvas-ignore');
+                }
+            }).then(canvas => {
+                screenshotContainer.innerHTML = "";
+                // Convert canvas to image for easier saving on mobile
+                const img = document.createElement("img");
+                img.src = canvas.toDataURL("image/png");
+                img.className = "max-w-full h-auto rounded-lg";
+                screenshotContainer.appendChild(img);
+                
+                imageModal.classList.remove("hidden");
+                
+                // Reset button
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }).catch(err => {
+                alert("Gagal membuat gambar: " + err);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        }
+
+        function closeImageModal() {
+            imageModal.classList.add("hidden");
+        }
+    </script>
+</body>
+</html>
