@@ -177,7 +177,7 @@
                             <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm">
                                 <i class="fa-regular fa-clipboard text-blue-600"></i> Copy Resi Sukses
                             </h3>
-                            <p class="text-[10px] text-slate-500 mt-0.5">Hanya status ORDER_SUCCESS</p>
+                            <p class="text-[10px] text-slate-500 mt-0.5">ORDER_SUCCESS & HANDOVER_SUCCESS</p>
                         </div>
                         <button onclick="copyAllResi()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors shadow-sm flex items-center gap-2 group">
                             <span class="hidden sm:inline">Salin Semua</span>
@@ -278,6 +278,9 @@
         let batchData = {}; 
         let currentBatchId = null;
         let uniquePartners = new Set();
+        
+        // Define Success Statuses
+        const SUCCESS_STATUSES = ['ORDER_SUCCESS', 'HANDOVER_SUCCESS'];
 
         // --- DOM ELEMENTS ---
         const dropZone = document.getElementById('dropZone');
@@ -368,14 +371,13 @@
             }
 
             // STRATEGY 2: Unstructured Mess (Jika upload file berantakan)
-            // Pattern: [BlobOfDigits][STATUS][Batch][Partner]
+            // Pattern matches: 8+ digits, then (ORDER_... or HANDOVER_...), then Batch, then Partner
             if (totalFound === 0) {
-                // Regex: Menangkap kumpulan angka (minimal 8) yang langsung diikuti oleh ORDER_
-                const regex = /(\d{8,})(ORDER_[A-Z]+)(ELC-[\d]+)([A-Z]+)/g;
+                // Regex updated to include HANDOVER_ prefix in status capture group
+                const regex = /(\d{8,})((?:ORDER|HANDOVER)_[A-Z]+)(ELC-[\d]+)([A-Z]+)/g;
                 let match;
                 while ((match = regex.exec(text)) !== null) {
-                    const rawDigits = match[1]; // Ini bisa berisi opcode + waybill + orderno
-                    // Ambil 14 digit terakhir sebagai Order No (Standard Logistic ID length)
+                    const rawDigits = match[1]; 
                     const orderNo = rawDigits.slice(-14); 
                     
                     const statusRaw = match[2];
@@ -387,7 +389,7 @@
                 }
             }
             
-            // Strategy 3: Old Fallback (Strict 14 digits)
+            // Strategy 3: Old Fallback (Strict 14 digits, assumes ORDER_SUCCESS)
             if (totalFound === 0) {
                  const regexOld = /(\d{14})ORDER_SUCCESS(ELC-[\d]+)/g;
                  let match;
@@ -406,7 +408,7 @@
                 updateTime();
                 return true;
             } else {
-                alert("Format data tidak dikenali. Pastikan data mengandung Order No, Status (ORDER_SUCCESS), dan Batch (ELC-...).");
+                alert("Format data tidak dikenali. Pastikan data mengandung Order No, Status (ORDER/HANDOVER), dan Batch (ELC-...).");
                 return false;
             }
         }
@@ -457,43 +459,40 @@
                 const data = batchData[batchId];
                 if (selectedPartner !== 'ALL' && data.partner !== selectedPartner) continue;
 
-                // Hitung & Kumpulkan Order Sukses
-                const successOrders = data.orderDetails.filter(o => o.status === 'ORDER_SUCCESS').map(o => o.id);
+                // --- LOGIC: COUNT & COPY SUCCESS (ORDER_SUCCESS + HANDOVER_SUCCESS) ---
+                const successOrders = data.orderDetails
+                    .filter(o => SUCCESS_STATUSES.includes(o.status))
+                    .map(o => o.id);
+                
                 allOrdersForCopy.push(...successOrders);
                 
+                // Add to Header Total (Success Only)
                 grandTotalSuccess += successOrders.length;
                 
-                // Total Baris (Semua Status)
+                // --- LOGIC: TABLE QTY SHOWS TOTAL (ALL STATUSES) ---
                 const totalRowQty = data.orders.length; 
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-blue-50 transition-colors cursor-pointer group even:bg-slate-50/50';
                 tr.onclick = () => showBatchDetails(batchId);
 
-                // Status Badge logic
+                // --- Status Badge Logic ---
                 let statusHtml = '';
                 const statusKeys = Object.keys(data.statusCounts);
                 
-                if (statusKeys.length === 1 && statusKeys[0] === 'ORDER_SUCCESS') {
-                    statusHtml = `
-                        <div class="flex items-center gap-2">
-                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700 border border-green-200 shadow-sm">
-                                <i class="fa-solid fa-check-circle text-[9px]"></i> ORDER_SUCCESS
-                            </span>
-                        </div>
-                    `;
-                } else {
-                    let badges = [];
-                    statusKeys.forEach(status => {
-                        const count = data.statusCounts[status];
-                        if (status === 'ORDER_SUCCESS') {
-                            badges.push(`<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-green-100 text-green-700 border border-green-200">${status}: ${count}</span>`);
-                        } else {
-                            badges.push(`<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700 border border-red-200 animate-pulse"><i class="fa-solid fa-circle-exclamation"></i> ${status}: ${count}</span>`);
-                        }
-                    });
-                    statusHtml = `<div class="flex flex-col gap-1 items-start">${badges.join('')}</div>`;
-                }
+                // Logic to display badges
+                let badges = [];
+                statusKeys.forEach(status => {
+                    const count = data.statusCounts[status];
+                    if (SUCCESS_STATUSES.includes(status)) {
+                        // Green Badge for Success Types
+                        badges.push(`<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-green-100 text-green-700 border border-green-200"><i class="fa-solid fa-check-circle text-[8px]"></i> ${status}: ${count}</span>`);
+                    } else {
+                        // Red Badge for Errors
+                        badges.push(`<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700 border border-red-200 animate-pulse"><i class="fa-solid fa-circle-exclamation"></i> ${status}: ${count}</span>`);
+                    }
+                });
+                statusHtml = `<div class="flex flex-col gap-1 items-start">${badges.join('')}</div>`;
 
                 const pColor = getPartnerColor(data.partner);
 
@@ -547,12 +546,16 @@
             details.forEach((item, idx) => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 border-b border-slate-100';
-                const statusClass = item.status === 'ORDER_SUCCESS' ? 'text-green-600' : 'text-red-600 font-bold';
+                
+                // Color Logic for Detail View
+                const isSuccess = SUCCESS_STATUSES.includes(item.status);
+                const statusClass = isSuccess ? 'text-green-600 font-medium' : 'text-red-600 font-bold';
+                const icon = isSuccess ? '<i class="fa-solid fa-check text-[10px] mr-1"></i>' : '<i class="fa-solid fa-xmark text-[10px] mr-1"></i>';
                 
                 tr.innerHTML = `
                     <td class="px-4 py-2 text-slate-400 text-xs">${idx + 1}</td>
                     <td class="px-4 py-2 font-mono text-slate-600 text-xs">${item.id}</td>
-                    <td class="px-4 py-2 text-xs ${statusClass}">${item.status}</td>
+                    <td class="px-4 py-2 text-xs ${statusClass}">${icon}${item.status}</td>
                     <td class="px-4 py-2 text-right">
                         <button onclick="copyToClipboard('${item.id}')" class="text-slate-400 hover:text-blue-600"><i class="fa-regular fa-copy"></i></button>
                     </td>
