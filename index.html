@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Logistic Report Partner</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- html2canvas untuk fitur screenshot -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
@@ -62,7 +62,7 @@
     <!-- Main Content -->
     <main class="flex-grow max-w-[1600px] w-full mx-auto px-4 py-6 space-y-6">
         
-        <!-- 1. COMPACT Upload & Paste Section -->
+        <!-- 1. COMPACT Upload Section (Cleaned) -->
         <section class="bg-white rounded-lg shadow-sm border border-slate-200 p-4 fade-in print:hidden">
             <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-lg p-3 transition-all duration-200 hover:border-blue-400 hover:bg-slate-50 cursor-pointer flex flex-col sm:flex-row items-center justify-between gap-4">
                 <input type="file" id="fileInput" class="hidden" accept=".csv, .txt">
@@ -73,21 +73,16 @@
                         <i class="fa-solid fa-cloud-arrow-up"></i>
                     </div>
                     <div class="text-left">
-                        <h3 class="text-sm font-semibold text-slate-700">Import Data Logistic</h3>
-                        <p class="text-xs text-slate-500">Format: CSV, TXT, atau Paste Langsung (Pipe |)</p>
+                        <h3 class="text-sm font-semibold text-slate-700">Upload File Logistic</h3>
+                        <p class="text-xs text-slate-500">Format: CSV (Pipe |) atau Text File.</p>
                         <p id="fileNameDisplay" class="text-xs font-bold text-blue-600 mt-1 hidden"></p>
                     </div>
                 </div>
                 
                 <!-- Action Buttons -->
-                <div class="flex items-center gap-2">
-                    <button onclick="openPasteModal(event)" class="px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 text-sm rounded-lg hover:bg-indigo-100 transition-colors shadow-sm font-medium whitespace-nowrap flex items-center gap-2">
-                        <i class="fa-regular fa-paste"></i> Paste Data
-                    </button>
-                    <button onclick="triggerFile(event)" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium whitespace-nowrap flex items-center gap-2">
-                        <i class="fa-solid fa-upload"></i> Pilih File
-                    </button>
-                </div>
+                <button onclick="triggerFile(event)" class="px-6 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium whitespace-nowrap flex items-center gap-2">
+                    <i class="fa-solid fa-upload"></i> Pilih File
+                </button>
             </div>
         </section>
 
@@ -247,32 +242,6 @@
 
     </main>
 
-    <!-- Paste Modal -->
-    <div id="pasteModal" class="fixed inset-0 bg-black/50 hidden z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full flex flex-col max-h-[90vh]">
-            <div class="p-4 border-b border-slate-100 flex justify-between items-center">
-                <h3 class="font-bold text-slate-800 flex items-center gap-2">
-                    <i class="fa-regular fa-clipboard text-indigo-600"></i> Paste Data Mentah
-                </h3>
-                <button onclick="closePasteModal()" class="text-slate-400 hover:text-red-500 transition-colors">
-                    <i class="fa-solid fa-xmark text-xl"></i>
-                </button>
-            </div>
-            <div class="p-4 flex-grow flex flex-col gap-2">
-                <p class="text-sm text-slate-500">Paste data dari Excel atau Notepad di bawah ini (Format Pipe |)</p>
-                <textarea id="pasteInput" class="w-full flex-grow border border-slate-300 rounded-lg p-4 font-mono text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none min-h-[300px]" placeholder="Contoh: 
-11003074830836|11003074830836|ORDER_SUCCESS|ELC-0000193592|SALM|201
-..."></textarea>
-            </div>
-            <div class="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-xl">
-                <button onclick="closePasteModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg text-sm font-medium transition-colors">Batal</button>
-                <button onclick="processPaste()" class="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors shadow-sm">
-                    <i class="fa-solid fa-gear mr-1"></i> Proses Data
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal for Screenshot Result -->
     <div id="imageModal" class="fixed inset-0 bg-black/80 hidden z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
@@ -326,8 +295,6 @@
         const copyTotalCount = document.getElementById('copyTotalCount');
         const imageModal = document.getElementById('imageModal');
         const screenshotContainer = document.getElementById('screenshotContainer');
-        const pasteModal = document.getElementById('pasteModal');
-        const pasteInput = document.getElementById('pasteInput');
         
         // --- INIT ---
         function updateTime() {
@@ -340,14 +307,13 @@
         }
         updateTime();
 
-        // --- FILE & PASTE HANDLING ---
+        // --- FILE HANDLING ---
         
         dropZone.addEventListener('click', (e) => {
             if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
                 fileInput.click();
             }
         });
-        
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-active'); });
         dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('drag-active'); });
         dropZone.addEventListener('drop', (e) => {
@@ -363,28 +329,6 @@
             fileInput.click();
         }
 
-        function openPasteModal(e) {
-            if(e) e.stopPropagation();
-            pasteModal.classList.remove('hidden');
-            pasteInput.focus();
-        }
-
-        function closePasteModal() {
-            pasteModal.classList.add('hidden');
-        }
-
-        function processPaste() {
-            const content = pasteInput.value;
-            if(!content.trim()) {
-                alert("Silakan paste data terlebih dahulu.");
-                return;
-            }
-            processData(content);
-            closePasteModal();
-            fileNameDisplay.textContent = "Mode: Paste Data Manual";
-            fileNameDisplay.classList.remove('hidden');
-        }
-
         function handleFile(file) {
             fileNameDisplay.textContent = `File: ${file.name}`;
             fileNameDisplay.classList.remove('hidden');
@@ -393,13 +337,14 @@
             reader.readAsText(file);
         }
 
-        // --- PARSING LOGIC ---
+        // --- PARSING LOGIC (ROBUST) ---
         function processData(text) {
             batchData = {}; 
             uniquePartners = new Set();
             let totalFound = 0;
             const lines = text.trim().split(/\r?\n/);
             
+            // STRATEGY 1: PIPE (|) Delimited (CSV Clean)
             if (text.includes('|')) {
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i].trim();
@@ -415,64 +360,74 @@
                         const partner = parts[4].trim();
                         
                         if (batchNo.startsWith('ELC-')) {
-                            if (!batchData[batchNo]) {
-                                batchData[batchNo] = {
-                                    partner: partner,
-                                    orders: [],
-                                    statusCounts: {},
-                                    orderDetails: []
-                                };
-                                uniquePartners.add(partner);
-                            }
-                            batchData[batchNo].orders.push(orderNo);
-                            batchData[batchNo].orderDetails.push({ id: orderNo, status: statusRaw });
-
-                            if (!batchData[batchNo].statusCounts[statusRaw]) {
-                                batchData[batchNo].statusCounts[statusRaw] = 0;
-                            }
-                            batchData[batchNo].statusCounts[statusRaw]++;
+                            addToBatch(batchNo, orderNo, statusRaw, partner);
                             totalFound++;
                         }
                     }
                 }
             }
 
-            // Fallback Regex
+            // STRATEGY 2: Unstructured Mess (Jika upload file berantakan)
+            // Pattern: [BlobOfDigits][STATUS][Batch][Partner]
             if (totalFound === 0) {
-                const regex = /(\d{14})ORDER_SUCCESS(ELC-[\d]+)/g;
+                // Regex: Menangkap kumpulan angka (minimal 8) yang langsung diikuti oleh ORDER_
+                const regex = /(\d{8,})(ORDER_[A-Z]+)(ELC-[\d]+)([A-Z]+)/g;
                 let match;
                 while ((match = regex.exec(text)) !== null) {
-                    const orderNo = match[1];
-                    const batchNo = match[2];
-                    const defaultPartner = "UNKNOWN";
-                    const statusRaw = "ORDER_SUCCESS";
+                    const rawDigits = match[1]; // Ini bisa berisi opcode + waybill + orderno
+                    // Ambil 14 digit terakhir sebagai Order No (Standard Logistic ID length)
+                    const orderNo = rawDigits.slice(-14); 
+                    
+                    const statusRaw = match[2];
+                    const batchNo = match[3];
+                    const partner = match[4];
 
-                    if (!batchData[batchNo]) {
-                        batchData[batchNo] = {
-                            partner: defaultPartner,
-                            orders: [],
-                            statusCounts: { 'ORDER_SUCCESS': 0 },
-                            orderDetails: []
-                        };
-                        uniquePartners.add(defaultPartner);
-                    }
-                    batchData[batchNo].orders.push(orderNo);
-                    batchData[batchNo].orderDetails.push({ id: orderNo, status: statusRaw });
-                    batchData[batchNo].statusCounts['ORDER_SUCCESS']++;
+                    addToBatch(batchNo, orderNo, statusRaw, partner);
                     totalFound++;
                 }
+            }
+            
+            // Strategy 3: Old Fallback (Strict 14 digits)
+            if (totalFound === 0) {
+                 const regexOld = /(\d{14})ORDER_SUCCESS(ELC-[\d]+)/g;
+                 let match;
+                 while ((match = regexOld.exec(text)) !== null) {
+                     addToBatch(match[2], match[1], "ORDER_SUCCESS", "UNKNOWN");
+                     totalFound++;
+                 }
             }
 
             if (totalFound > 0) {
                 populateFilter();
                 renderBatchSummary(); 
-                showToast(`Data Loaded: ${totalFound} orders`);
+                showToast(`Berhasil Memuat: ${totalFound} order`);
                 mainGrid.classList.remove('hidden');
                 detailSection.classList.add('hidden');
-                updateTime(); // Refresh time on load
+                updateTime();
+                return true;
             } else {
-                alert("Format data tidak sesuai. Pastikan menggunakan format Pipe (|) yang benar.");
+                alert("Format data tidak dikenali. Pastikan data mengandung Order No, Status (ORDER_SUCCESS), dan Batch (ELC-...).");
+                return false;
             }
+        }
+
+        function addToBatch(batchNo, orderNo, statusRaw, partner) {
+             if (!batchData[batchNo]) {
+                batchData[batchNo] = {
+                    partner: partner,
+                    orders: [],
+                    statusCounts: {},
+                    orderDetails: []
+                };
+                uniquePartners.add(partner);
+            }
+            batchData[batchNo].orders.push(orderNo);
+            batchData[batchNo].orderDetails.push({ id: orderNo, status: statusRaw });
+
+            if (!batchData[batchNo].statusCounts[statusRaw]) {
+                batchData[batchNo].statusCounts[statusRaw] = 0;
+            }
+            batchData[batchNo].statusCounts[statusRaw]++;
         }
 
         // --- FILTER ---
@@ -492,7 +447,7 @@
         function renderBatchSummary() {
             const selectedPartner = partnerFilter.value;
             batchTableBody.innerHTML = '';
-            let grandTotalSuccess = 0; // Count only success for header
+            let grandTotalSuccess = 0; 
             let index = 1;
             let allOrdersForCopy = [];
 
@@ -502,21 +457,20 @@
                 const data = batchData[batchId];
                 if (selectedPartner !== 'ALL' && data.partner !== selectedPartner) continue;
 
-                // --- LOGIC: COUNT & COPY ONLY SUCCESS ---
+                // Hitung & Kumpulkan Order Sukses
                 const successOrders = data.orderDetails.filter(o => o.status === 'ORDER_SUCCESS').map(o => o.id);
                 allOrdersForCopy.push(...successOrders);
                 
-                // Add to Header Total (Success Only)
                 grandTotalSuccess += successOrders.length;
                 
-                // --- LOGIC: TABLE QTY SHOWS TOTAL (ALL) ---
-                const totalRowQty = data.orders.length; // Total All Orders
+                // Total Baris (Semua Status)
+                const totalRowQty = data.orders.length; 
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-blue-50 transition-colors cursor-pointer group even:bg-slate-50/50';
                 tr.onclick = () => showBatchDetails(batchId);
 
-                // --- Status Badge Logic (SHOW ALL STATUSES) ---
+                // Status Badge logic
                 let statusHtml = '';
                 const statusKeys = Object.keys(data.statusCounts);
                 
@@ -653,20 +607,18 @@
             const element = document.getElementById("reportCardToCapture");
             const btn = document.querySelector("button[onclick='captureReport()']");
             
-            // Visual feedback loading
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
             btn.disabled = true;
 
             html2canvas(element, {
-                scale: 2, // Higher quality
+                scale: 2, 
                 backgroundColor: "#ffffff",
                 ignoreElements: (node) => {
                     return node.hasAttribute('data-html2canvas-ignore');
                 }
             }).then(canvas => {
                 screenshotContainer.innerHTML = "";
-                // Convert canvas to image for easier saving on mobile
                 const img = document.createElement("img");
                 img.src = canvas.toDataURL("image/png");
                 img.className = "max-w-full h-auto rounded-lg";
@@ -674,7 +626,6 @@
                 
                 imageModal.classList.remove("hidden");
                 
-                // Reset button
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }).catch(err => {
