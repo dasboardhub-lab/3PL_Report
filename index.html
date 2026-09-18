@@ -93,12 +93,20 @@
             <div class="lg:col-span-7 flex flex-col gap-4">
                 
                 <!-- Controls -->
-                <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200 shadow-sm print:hidden">
-                    <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center justify-between gap-2 bg-white p-2 rounded-lg border border-slate-200 shadow-sm print:hidden">
+                    <div class="flex flex-wrap items-center gap-2">
                         <span class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-2">Filter:</span>
                         <div class="relative">
                             <select id="partnerFilter" class="appearance-none bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-40 pl-3 pr-8 py-1.5 cursor-pointer font-medium" onchange="applyFilter()">
                                 <option value="ALL">Semua Partner</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                                <i class="fa-solid fa-chevron-down text-xs"></i>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <select id="batchFilter" class="appearance-none bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-44 pl-3 pr-8 py-1.5 cursor-pointer font-medium" onchange="applyFilter()">
+                                <option value="ALL">Semua Batch Number</option>
                             </select>
                             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
                                 <i class="fa-solid fa-chevron-down text-xs"></i>
@@ -294,6 +302,7 @@
         const headerTotalQty = document.getElementById('headerTotalQty');
         const searchInput = document.getElementById('searchInput');
         const partnerFilter = document.getElementById('partnerFilter');
+        const batchFilter = document.getElementById('batchFilter');
         const allResiText = document.getElementById('allResiText');
         const copyTotalCount = document.getElementById('copyTotalCount');
         const imageModal = document.getElementById('imageModal');
@@ -441,6 +450,14 @@
                 option.textContent = partner;
                 partnerFilter.appendChild(option);
             });
+
+            batchFilter.innerHTML = '<option value="ALL">Semua Batch Number</option>';
+            Object.keys(batchData).sort().forEach(batchId => {
+                const option = document.createElement('option');
+                option.value = batchId;
+                option.textContent = batchId;
+                batchFilter.appendChild(option);
+            });
         }
 
         function applyFilter() { renderBatchSummary(); }
@@ -448,6 +465,7 @@
         // --- RENDER ---
         function renderBatchSummary() {
             const selectedPartner = partnerFilter.value;
+            const selectedBatch = batchFilter.value;
             batchTableBody.innerHTML = '';
             let grandTotalSuccess = 0; 
             let index = 1;
@@ -458,6 +476,7 @@
             for (const batchId of sortedBatches) {
                 const data = batchData[batchId];
                 if (selectedPartner !== 'ALL' && data.partner !== selectedPartner) continue;
+                if (selectedBatch !== 'ALL' && batchId !== selectedBatch) continue;
 
                 // --- LOGIC: COUNT & COPY SUCCESS (ORDER_SUCCESS + HANDOVER_SUCCESS) ---
                 const successOrders = data.orderDetails
