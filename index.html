@@ -104,12 +104,26 @@
                                 <i class="fa-solid fa-chevron-down text-xs"></i>
                             </div>
                         </div>
-                        <div class="relative">
-                            <select id="batchFilter" class="appearance-none bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-44 pl-3 pr-8 py-1.5 cursor-pointer font-medium" onchange="applyFilter()">
-                                <option value="ALL">Semua Batch Number</option>
-                            </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
-                                <i class="fa-solid fa-chevron-down text-xs"></i>
+                        <div id="batchFilterContainer" class="relative">
+                            <button type="button" id="batchFilterButton" onclick="toggleBatchFilter(event)" aria-expanded="false" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between gap-2 w-48 px-3 py-1.5 cursor-pointer font-medium">
+                                <span id="batchFilterLabel" class="truncate">Semua Batch Number</span>
+                                <i id="batchFilterChevron" class="fa-solid fa-chevron-down text-xs text-slate-500 transition-transform"></i>
+                            </button>
+                            <div id="batchFilterDropdown" class="hidden absolute left-0 top-full mt-1 z-50 w-72 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden">
+                                <div class="p-2 border-b border-slate-100">
+                                    <div class="relative">
+                                        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                                        <input type="text" id="batchSearchInput" oninput="filterBatchOptions()" placeholder="Cari nomor batch..." class="w-full pl-8 pr-3 py-2 text-xs border border-slate-300 rounded-md focus:outline-none focus:border-blue-500">
+                                    </div>
+                                </div>
+                                <button type="button" onclick="clearBatchSelections(event)" class="w-full flex items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border-b border-blue-100">
+                                    <i id="batchAllCheck" class="fa-solid fa-check w-4"></i>
+                                    Semua Batch Number
+                                </button>
+                                <div id="batchOptionsList" class="max-h-56 overflow-y-auto p-1"></div>
+                                <div class="px-3 py-2 text-[10px] text-slate-400 bg-slate-50 border-t border-slate-100">
+                                    Centang beberapa batch untuk menampilkan semuanya sekaligus.
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -286,6 +300,7 @@
         let batchData = {}; 
         let currentBatchId = null;
         let uniquePartners = new Set();
+        let selectedBatches = new Set();
         
         // Define Success Statuses
         const SUCCESS_STATUSES = ['ORDER_SUCCESS', 'HANDOVER_SUCCESS'];
@@ -302,7 +317,14 @@
         const headerTotalQty = document.getElementById('headerTotalQty');
         const searchInput = document.getElementById('searchInput');
         const partnerFilter = document.getElementById('partnerFilter');
-        const batchFilter = document.getElementById('batchFilter');
+        const batchFilterContainer = document.getElementById('batchFilterContainer');
+        const batchFilterButton = document.getElementById('batchFilterButton');
+        const batchFilterLabel = document.getElementById('batchFilterLabel');
+        const batchFilterDropdown = document.getElementById('batchFilterDropdown');
+        const batchFilterChevron = document.getElementById('batchFilterChevron');
+        const batchSearchInput = document.getElementById('batchSearchInput');
+        const batchOptionsList = document.getElementById('batchOptionsList');
+        const batchAllCheck = document.getElementById('batchAllCheck');
         const allResiText = document.getElementById('allResiText');
         const copyTotalCount = document.getElementById('copyTotalCount');
         const imageModal = document.getElementById('imageModal');
@@ -353,6 +375,7 @@
         function processData(text) {
             batchData = {}; 
             uniquePartners = new Set();
+            selectedBatches.clear();
             let totalFound = 0;
             const lines = text.trim().split(/\r?\n/);
             
@@ -451,21 +474,99 @@
                 partnerFilter.appendChild(option);
             });
 
-            batchFilter.innerHTML = '<option value="ALL">Semua Batch Number</option>';
+            populateBatchOptions();
+            updateBatchFilterLabel();
+        }
+
+        function populateBatchOptions() {
+            batchOptionsList.innerHTML = '';
+
             Object.keys(batchData).sort().forEach(batchId => {
-                const option = document.createElement('option');
-                option.value = batchId;
-                option.textContent = batchId;
-                batchFilter.appendChild(option);
+                const label = document.createElement('label');
+                label.dataset.batchOption = batchId.toLowerCase();
+                label.className = 'flex items-center gap-2 px-2 py-2 rounded-md hover:bg-slate-50 cursor-pointer text-xs text-slate-700';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = batchId;
+                checkbox.checked = selectedBatches.has(batchId);
+                checkbox.className = 'batch-checkbox w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500';
+                checkbox.addEventListener('change', () => toggleBatchSelection(batchId, checkbox.checked));
+
+                const text = document.createElement('span');
+                text.className = 'font-mono font-medium';
+                text.textContent = batchId;
+
+                label.appendChild(checkbox);
+                label.appendChild(text);
+                batchOptionsList.appendChild(label);
             });
         }
+
+        function toggleBatchFilter(event) {
+            event.stopPropagation();
+            const willOpen = batchFilterDropdown.classList.contains('hidden');
+            batchFilterDropdown.classList.toggle('hidden', !willOpen);
+            batchFilterButton.setAttribute('aria-expanded', String(willOpen));
+            batchFilterChevron.classList.toggle('rotate-180', willOpen);
+            if (willOpen) setTimeout(() => batchSearchInput.focus(), 0);
+        }
+
+        function closeBatchFilter() {
+            batchFilterDropdown.classList.add('hidden');
+            batchFilterButton.setAttribute('aria-expanded', 'false');
+            batchFilterChevron.classList.remove('rotate-180');
+        }
+
+        function toggleBatchSelection(batchId, isChecked) {
+            if (isChecked) selectedBatches.add(batchId);
+            else selectedBatches.delete(batchId);
+            updateBatchFilterLabel();
+            applyFilter();
+        }
+
+        function clearBatchSelections(event) {
+            if (event) event.stopPropagation();
+            selectedBatches.clear();
+            document.querySelectorAll('.batch-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            updateBatchFilterLabel();
+            applyFilter();
+        }
+
+        function updateBatchFilterLabel() {
+            const count = selectedBatches.size;
+            if (count === 0) batchFilterLabel.textContent = 'Semua Batch Number';
+            else if (count === 1) batchFilterLabel.textContent = Array.from(selectedBatches)[0];
+            else batchFilterLabel.textContent = `${count} Batch dipilih`;
+
+            batchAllCheck.classList.toggle('invisible', count !== 0);
+            batchFilterButton.title = count === 0
+                ? 'Semua Batch Number'
+                : Array.from(selectedBatches).sort().join(', ');
+        }
+
+        function filterBatchOptions() {
+            const term = batchSearchInput.value.trim().toLowerCase();
+            document.querySelectorAll('[data-batch-option]').forEach(option => {
+                option.classList.toggle('hidden', !option.dataset.batchOption.includes(term));
+            });
+        }
+
+        document.addEventListener('click', (event) => {
+            if (!batchFilterContainer.contains(event.target)) closeBatchFilter();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeBatchFilter();
+        });
 
         function applyFilter() { renderBatchSummary(); }
 
         // --- RENDER ---
         function renderBatchSummary() {
             const selectedPartner = partnerFilter.value;
-            const selectedBatch = batchFilter.value;
             batchTableBody.innerHTML = '';
             let grandTotalSuccess = 0; 
             let index = 1;
@@ -476,7 +577,7 @@
             for (const batchId of sortedBatches) {
                 const data = batchData[batchId];
                 if (selectedPartner !== 'ALL' && data.partner !== selectedPartner) continue;
-                if (selectedBatch !== 'ALL' && batchId !== selectedBatch) continue;
+                if (selectedBatches.size > 0 && !selectedBatches.has(batchId)) continue;
 
                 // --- LOGIC: COUNT & COPY SUCCESS (ORDER_SUCCESS + HANDOVER_SUCCESS) ---
                 const successOrders = data.orderDetails
